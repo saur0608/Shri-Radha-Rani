@@ -8,28 +8,52 @@ export class NodemailerProvider implements IEmailProvider {
   name = 'Nodemailer';
   private transporter: Transporter | null = null;
 
+  private getCredentials() {
+    const user = ENV.MAIL_USER || ENV.SMTP_USER || 'kabaddi2808@gmail.com';
+    const pass = ENV.MAIL_APP_PASSWORD || ENV.SMTP_PASS || '';
+    const fromName = ENV.MAIL_FROM_NAME || 'Shri Radha Rani Shringar Bhandar';
+    const host = ENV.SMTP_HOST || '';
+    const port = ENV.SMTP_PORT || 587;
+    return { user, pass, fromName, host, port };
+  }
+
   private getTransporter() {
     if (!this.transporter) {
-      logger.info(`[Nodemailer] Creating SMTP transport: host=${ENV.SMTP_HOST || 'smtp.gmail.com'}, port=${ENV.SMTP_PORT || 587}, user=${ENV.SMTP_USER || 'none'}`);
-      this.transporter = nodemailer.createTransport({
-        host: ENV.SMTP_HOST || 'smtp.gmail.com',
-        port: ENV.SMTP_PORT || 587,
-        secure: ENV.SMTP_PORT === 465,
-        auth: {
-          user: ENV.SMTP_USER,
-          pass: ENV.SMTP_PASS,
-        },
-      });
+      const { user, pass, host, port } = this.getCredentials();
+      const auth = { user, pass };
+
+      logger.info(`[Nodemailer] Creating SMTP transport: host=${host || 'service:gmail'}, port=${port}, user=${user}`);
+
+      this.transporter = nodemailer.createTransport(
+        host
+          ? { host, port, secure: port === 465, auth, pool: true }
+          : { service: 'gmail', auth, pool: true, maxConnections: 5, maxMessages: 100 }
+      );
     }
     return this.transporter;
+  }
+
+  async verifyConnection(): Promise<boolean> {
+    try {
+      const transporter = this.getTransporter();
+      await transporter.verify();
+      const { user } = this.getCredentials();
+      logger.info(`[Nodemailer] SMTP connection verified successfully as ${user}`);
+      return true;
+    } catch (err: any) {
+      logger.error(`[Nodemailer] SMTP verification failed: ${err.message}`);
+      return false;
+    }
   }
 
   async sendOtp(email: string, otp: string, purpose: string): Promise<EmailDeliveryResult> {
     const maskedEmail = `${email.slice(0, 3)}***@${email.split('@')[1]}`;
     logger.info(`[Nodemailer] Step 1: Initiating OTP email dispatch to ${maskedEmail} for ${purpose}`);
 
-    if (!ENV.SMTP_USER || !ENV.SMTP_PASS || ENV.SMTP_PASS === 'sample_password') {
-      const errMsg = 'SMTP credentials (SMTP_USER or SMTP_PASS) not configured or using sample placeholder';
+    const { user, pass, fromName } = this.getCredentials();
+
+    if (!pass || pass === 'sample_password') {
+      const errMsg = 'SMTP credentials (MAIL_APP_PASSWORD or SMTP_PASS) not configured or using sample placeholder';
       logger.error(`[Nodemailer] Configuration Error: ${errMsg}`);
       return {
         success: false,
@@ -41,12 +65,13 @@ export class NodemailerProvider implements IEmailProvider {
     try {
       const transporter = this.getTransporter();
       const { subject, html, text } = generateOtpEmailHtml(otp, purpose);
+      const senderAddress = `"${fromName}" <${user}>`;
 
-      logger.info(`[Nodemailer] Step 2: Sending mail via SMTP host ${ENV.SMTP_HOST}`);
+      logger.info(`[Nodemailer] Step 2: Sending mail from ${senderAddress} to ${maskedEmail}`);
       const startTime = Date.now();
 
       const info = await transporter.sendMail({
-        from: ENV.SMTP_FROM,
+        from: senderAddress,
         to: email,
         subject,
         html,

@@ -38,11 +38,14 @@ const envSchema = z.object({
 
   // Email Provider: 'console' | 'nodemailer' | 'resend'
   EMAIL_PROVIDER: z.enum(['console', 'nodemailer', 'resend']).default('console'),
+  MAIL_USER: z.string().default('kabaddi2808@gmail.com'),
+  MAIL_APP_PASSWORD: z.string().optional(),
+  MAIL_FROM_NAME: z.string().default('Shri Radha Rani Shringar Bhandar'),
   SMTP_HOST: z.string().optional(),
   SMTP_PORT: z.string().default('587').transform((v) => parseInt(v, 10)),
   SMTP_USER: z.string().optional(),
   SMTP_PASS: z.string().optional(),
-  SMTP_FROM: z.string().default('"Shri Radha Rani Shringar" <support@shriradharanishringar.com>'),
+  SMTP_FROM: z.string().default('"Shri Radha Rani Shringar Bhandar" <kabaddi2808@gmail.com>'),
   RESEND_API_KEY: z.string().optional(),
 
   RAZORPAY_KEY_ID: z.string().default('rzp_test_sampleKey'),

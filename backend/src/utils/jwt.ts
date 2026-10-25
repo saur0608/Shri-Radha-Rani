@@ -20,15 +20,25 @@ export const verifyToken = (token: string): TokenPayload => {
 };
 
 export interface VerificationTokenPayload {
+  sub?: string;
   target: string;
   channel: 'SMS' | 'EMAIL';
   purpose: string;
+  ev?: boolean;
 }
 
 export const signVerificationToken = (payload: VerificationTokenPayload): string => {
-  return jwt.sign(payload, ENV.OTP_SECRET, {
-    expiresIn: '15m',
-  });
+  return jwt.sign(
+    {
+      sub: payload.target,
+      ev: true,
+      ...payload,
+    },
+    ENV.OTP_SECRET,
+    {
+      expiresIn: '15m',
+    }
+  );
 };
 
 export const verifyVerificationToken = (token: string): VerificationTokenPayload => {

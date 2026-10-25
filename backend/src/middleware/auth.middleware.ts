@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { verifyToken, TokenPayload } from '../utils/jwt';
+import { verifyToken, verifyVerificationToken, TokenPayload } from '../utils/jwt';
 import { ApiError } from '../utils/apiError';
 import { prisma } from '../db/prisma';
 
@@ -8,6 +8,7 @@ declare global {
   namespace Express {
     interface Request {
       user?: TokenPayload & { name?: string };
+      verifiedEmail?: string;
     }
   }
 }
@@ -93,5 +94,38 @@ export const requireRole = (...roles: string[]) => {
     }
 
     next();
+  };
+};
+
+/**
+ * Middleware ensuring request possesses a valid, unexpired email verification token.
+ * Compatible with the email-otp specification.
+ */
+export const requireVerifiedEmail = (purpose?: string) => {
+  return (req: Request, res: Response, next: NextFunction) => {
+    const authHeader = req.headers.authorization || '';
+    const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '';
+    if (!token) {
+      return res.status(401).json({
+        success: false,
+        code: 'EMAIL_NOT_VERIFIED',
+        message: 'Please verify your email first.',
+      });
+    }
+
+    try {
+      const decoded = verifyVerificationToken(token);
+      if (!decoded.ev || decoded.channel !== 'EMAIL' || (purpose && decoded.purpose !== purpose)) {
+        throw new Error('Invalid verification token');
+      }
+      req.verifiedEmail = decoded.sub || decoded.target;
+      next();
+    } catch {
+      return res.status(401).json({
+        success: false,
+        code: 'EMAIL_NOT_VERIFIED',
+        message: 'Please verify your email first.',
+      });
+    }
   };
 };
