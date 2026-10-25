@@ -8,6 +8,7 @@ import couponRoutes from './coupon.routes';
 import paymentRoutes from './payment.routes';
 import reviewRoutes from './review.routes';
 import adminRoutes from './admin.routes';
+import healthRoutes from './health.routes';
 
 const apiRouter = Router();
 
@@ -20,6 +21,7 @@ apiRouter.use('/coupons', couponRoutes);
 apiRouter.use('/payments', paymentRoutes);
 apiRouter.use('/reviews', reviewRoutes);
 apiRouter.use('/admin', adminRoutes);
+apiRouter.use('/health', healthRoutes);
 
 // Health check endpoint
 apiRouter.get('/health', (_req, res) => {
@@ -32,3 +34,4 @@ apiRouter.get('/health', (_req, res) => {
 });
 
 export default apiRouter;
+

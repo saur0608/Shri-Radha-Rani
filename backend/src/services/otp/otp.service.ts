@@ -131,28 +131,44 @@ export class OtpService {
       },
     });
 
-    // 6. Dispatch via SMS or Email provider
-    let sent = false;
+    // 6. Dispatch via SMS or Email provider with full audit and diagnostics
+    let deliveryResult: { success: boolean; provider: string; errorMessage?: string; messageId?: string };
+
     if (channel === 'SMS') {
       const smsProvider = getSmsProvider();
-      sent = await smsProvider.sendOtp(normalizedTarget, rawOtp, purpose);
+      logger.info(`[OTP Dispatch] Calling SMS provider "${smsProvider.name}" for target ${normalizedTarget}`);
+      deliveryResult = await smsProvider.sendOtp(normalizedTarget, rawOtp, purpose);
     } else {
       const emailProvider = getEmailProvider();
-      sent = await emailProvider.sendOtp(normalizedTarget, rawOtp, purpose);
+      logger.info(`[OTP Dispatch] Calling Email provider "${emailProvider.name}" for target ${normalizedTarget}`);
+      deliveryResult = await emailProvider.sendOtp(normalizedTarget, rawOtp, purpose);
     }
 
-    if (!sent) {
-      throw ApiError.internal('Unable to dispatch verification code at this moment. Please try again.');
+    if (!deliveryResult.success) {
+      const failureReason = deliveryResult.errorMessage || 'Provider rejected message dispatch';
+      logger.error(`[OTP Dispatch FAILED] Channel: ${channel}, Provider: ${deliveryResult.provider}, Target: ${normalizedTarget}, Error: ${failureReason}`);
+
+      // Invalidate the created OTP request so user does not get stuck on failed attempt
+      await prisma.otpRequest.updateMany({
+        where: { target: normalizedTarget, purpose, consumedAt: null },
+        data: { consumedAt: now },
+      });
+
+      throw ApiError.badRequest(`SMS/Email delivery failed: ${failureReason}`);
     }
+
+    logger.info(`[OTP Dispatch SUCCESS] Channel: ${channel}, Provider: ${deliveryResult.provider}, Target: ${normalizedTarget}, MessageId: ${deliveryResult.messageId || 'none'}`);
 
     return {
       success: true,
-      message: `Verification code sent successfully via ${channel}.`,
+      message: `Verification code sent successfully via ${channel} (${deliveryResult.provider}).`,
       target: normalizedTarget,
       channel,
+      provider: deliveryResult.provider,
       cooldownSeconds: ENV.OTP_COOLDOWN_SECONDS,
       expiresInSeconds: ENV.OTP_EXPIRY_MINUTES * 60,
     };
+
   }
 
   /**

@@ -23,11 +23,14 @@ const envSchema = z.object({
   OTP_HOURLY_LIMIT: z.string().default('5').transform((v) => parseInt(v, 10)),
   OTP_LOG_CONSOLE: z.string().default('true').transform((v) => v === 'true'),
 
-  // SMS Provider: 'console' | 'fast2sms' | 'twilio'
-  SMS_PROVIDER: z.enum(['console', 'fast2sms', 'twilio']).default('console'),
+  // SMS Provider: 'console' | 'fast2sms' | 'twilio' | 'msg91'
+  SMS_PROVIDER: z.enum(['console', 'fast2sms', 'twilio', 'msg91']).default('console'),
   FAST2SMS_API_KEY: z.string().optional(),
   FAST2SMS_SENDER_ID: z.string().default('RADHAR'),
   FAST2SMS_DLT_TEMPLATE_ID: z.string().optional(),
+  FAST2SMS_ENTITY_ID: z.string().optional(),
+  MSG91_AUTH_KEY: z.string().optional(),
+  MSG91_TEMPLATE_ID: z.string().optional(),
   TWILIO_ACCOUNT_SID: z.string().optional(),
   TWILIO_AUTH_TOKEN: z.string().optional(),
   TWILIO_PHONE_NUMBER: z.string().optional(),

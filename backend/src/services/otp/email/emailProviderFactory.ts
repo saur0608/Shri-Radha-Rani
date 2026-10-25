@@ -2,26 +2,21 @@ import { IEmailProvider } from './emailProvider.interface';
 import { ConsoleEmailProvider } from './consoleEmailProvider';
 import { NodemailerProvider } from './nodemailerProvider';
 import { ENV } from '../../../config/env';
+import { logger } from '../../../utils/logger';
 
-let instance: IEmailProvider | null = null;
+export function getEmailProvider(overrideProvider?: string): IEmailProvider {
+  const selectedProvider = overrideProvider || (ENV.OTP_LOG_CONSOLE && ENV.EMAIL_PROVIDER === 'console' ? 'console' : ENV.EMAIL_PROVIDER);
 
-export function getEmailProvider(): IEmailProvider {
-  if (instance) return instance;
+  logger.info(`[Email Factory] Resolving provider: requested="${overrideProvider || 'none'}", configured="${ENV.EMAIL_PROVIDER}", OTP_LOG_CONSOLE=${ENV.OTP_LOG_CONSOLE} -> Active="${selectedProvider}"`);
 
-  if (ENV.OTP_LOG_CONSOLE) {
-    instance = new ConsoleEmailProvider();
-    return instance;
-  }
-
-  switch (ENV.EMAIL_PROVIDER) {
+  switch (selectedProvider) {
     case 'nodemailer':
-      instance = new NodemailerProvider();
-      break;
+      return new NodemailerProvider();
     case 'console':
     default:
-      instance = new ConsoleEmailProvider();
-      break;
+      if (ENV.NODE_ENV === 'production') {
+        logger.warn('[Email Factory] ⚠️ EMAIL_PROVIDER is set to "console" in production! Real email will not be sent.');
+      }
+      return new ConsoleEmailProvider();
   }
-
-  return instance;
 }
