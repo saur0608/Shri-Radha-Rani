@@ -19,17 +19,31 @@ export const loginSchema = z.object({
   password: z.string().min(1, 'Password is required'),
 });
 
-export const sendOtpSchema = z.object({
-  target: z.string().min(1, 'Target mobile number or email is required'),
-  channel: z.enum(['SMS', 'EMAIL']).optional(),
-  purpose: z.enum(['signup', 'login', 'checkout', 'reset', 'profile']),
-});
+export const sendOtpSchema = z
+  .object({
+    target: z.string().optional(),
+    phone: z.string().optional(),
+    email: z.string().optional(),
+    channel: z.enum(['SMS', 'EMAIL']).optional(),
+    purpose: z.string().default('verification'),
+  })
+  .refine((data) => data.target || data.phone || data.email, {
+    message: 'Target mobile number or email address is required',
+    path: ['target'],
+  });
 
-export const verifyOtpSchema = z.object({
-  target: z.string().min(1, 'Target mobile number or email is required'),
-  otp: z.string().regex(/^\d{6}$/, 'Verification code must be exactly 6 digits'),
-  purpose: z.enum(['signup', 'login', 'checkout', 'reset', 'profile']),
-});
+export const verifyOtpSchema = z
+  .object({
+    target: z.string().optional(),
+    phone: z.string().optional(),
+    email: z.string().optional(),
+    otp: z.string().regex(/^\d{6}$/, 'Verification code must be exactly 6 digits'),
+    purpose: z.string().default('verification'),
+  })
+  .refine((data) => data.target || data.phone || data.email, {
+    message: 'Target mobile number or email address is required',
+    path: ['target'],
+  });
 
 export const otpLoginSchema = z.object({
   target: z.string().min(1, 'Please enter your mobile number or email'),

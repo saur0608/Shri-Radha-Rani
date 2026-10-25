@@ -196,25 +196,25 @@ export const api = {
     });
   },
 
-  sendOtp: (body: { target: string; channel?: 'SMS' | 'EMAIL'; purpose: string }) => {
+  sendOtp: (body: { target: string; channel?: 'SMS' | 'EMAIL'; purpose?: string }) => {
     return request<ApiResponse<{
       target: string;
       channel: 'SMS' | 'EMAIL';
       cooldownSeconds: number;
       expiresInSeconds: number;
-    }>>('/auth/otp/send', {
+    }>>('/otp/send', {
       method: 'POST',
       body: JSON.stringify(body),
     });
   },
 
-  verifyOtp: (body: { target: string; otp: string; purpose: string }) => {
+  verifyOtp: (body: { target: string; otp: string; purpose?: string }) => {
     return request<ApiResponse<{
       verified: boolean;
       verificationToken: string;
       token?: string;
       user?: any;
-    }>>('/auth/otp/verify', {
+    }>>('/otp/verify', {
       method: 'POST',
       body: JSON.stringify(body),
     });

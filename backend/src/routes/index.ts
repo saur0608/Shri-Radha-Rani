@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import authRoutes from './auth.routes';
+import otpRoutes from './otp.routes';
 import productRoutes from './product.routes';
 import categoryRoutes from './category.routes';
 import cartRoutes from './cart.routes';
@@ -12,6 +13,7 @@ import healthRoutes from './health.routes';
 
 const apiRouter = Router();
 
+apiRouter.use('/otp', otpRoutes);
 apiRouter.use('/auth', authRoutes);
 apiRouter.use('/products', productRoutes);
 apiRouter.use('/categories', categoryRoutes);

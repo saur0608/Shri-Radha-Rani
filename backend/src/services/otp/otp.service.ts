@@ -8,18 +8,32 @@ import { getEmailProvider } from './email/emailProviderFactory';
 import { signVerificationToken } from '../../utils/jwt';
 
 export type OtpChannel = 'SMS' | 'EMAIL';
-export type OtpPurpose = 'signup' | 'login' | 'checkout' | 'reset' | 'profile';
+export type OtpPurpose = 'verification' | 'signup' | 'login' | 'checkout' | 'reset' | 'profile' | string;
 
 export class OtpService {
   /**
    * Normalize phone number to 10-digit Indian mobile (starts 6-9)
    */
   static normalizePhone(phone: string): string {
-    const cleaned = phone.replace(/[\s\-\(\)]/g, '').replace(/^\+91/, '').replace(/^0/, '');
+    let cleaned = phone.replace(/[\s\-\(\)]/g, '');
+    if (cleaned.startsWith('+91')) {
+      cleaned = cleaned.slice(3);
+    } else if (cleaned.startsWith('0') && cleaned.length === 11) {
+      cleaned = cleaned.slice(1);
+    } else if (cleaned.startsWith('91') && cleaned.length === 12) {
+      cleaned = cleaned.slice(2);
+    }
     if (!/^[6-9]\d{9}$/.test(cleaned)) {
       throw ApiError.badRequest('Please enter a valid 10-digit Indian mobile number (starting with 6-9).');
     }
     return cleaned;
+  }
+
+  /**
+   * Format 10-digit Indian mobile with country prefix (91XXXXXXXXXX) for telecom providers
+   */
+  static toProviderPhone(phone: string): string {
+    return `91${this.normalizePhone(phone)}`;
   }
 
   /**
