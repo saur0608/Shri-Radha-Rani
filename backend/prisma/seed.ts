@@ -31,7 +31,9 @@ async function main() {
     data: {
       name: 'Pujari Ji (Admin)',
       phone: '9876543210',
+      phoneVerified: true,
       email: 'admin@shriradharanishringar.com',
+      emailVerified: true,
       passwordHash: passwordHashAdmin,
       role: Role.ADMIN,
     },
@@ -41,7 +43,9 @@ async function main() {
     data: {
       name: 'Radhika Sharma',
       phone: '9812345678',
+      phoneVerified: true,
       email: 'radhika.bhakt@gmail.com',
+      emailVerified: true,
       passwordHash: passwordHashDevotee,
       role: Role.CUSTOMER,
       addresses: {

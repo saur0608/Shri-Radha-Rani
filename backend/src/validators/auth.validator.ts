@@ -8,8 +8,10 @@ export const registerSchema = z.object({
   phone: z
     .string()
     .regex(indianPhoneRegex, 'Please enter a valid 10-digit Indian mobile number (e.g. 9876543210)'),
-  email: z.string().email('Please enter a valid email address').optional().or(z.literal('')),
+  email: z.string().email('Please enter a valid email address'),
   password: z.string().min(6, 'Password must be at least 6 characters'),
+  phoneVerificationToken: z.string().optional(),
+  emailVerificationToken: z.string().optional(),
 });
 
 export const loginSchema = z.object({
@@ -17,9 +19,35 @@ export const loginSchema = z.object({
   password: z.string().min(1, 'Password is required'),
 });
 
+export const sendOtpSchema = z.object({
+  target: z.string().min(1, 'Target mobile number or email is required'),
+  channel: z.enum(['SMS', 'EMAIL']).optional(),
+  purpose: z.enum(['signup', 'login', 'checkout', 'reset', 'profile']),
+});
+
+export const verifyOtpSchema = z.object({
+  target: z.string().min(1, 'Target mobile number or email is required'),
+  otp: z.string().regex(/^\d{6}$/, 'Verification code must be exactly 6 digits'),
+  purpose: z.enum(['signup', 'login', 'checkout', 'reset', 'profile']),
+});
+
+export const otpLoginSchema = z.object({
+  target: z.string().min(1, 'Please enter your mobile number or email'),
+  otp: z.string().regex(/^\d{6}$/, 'Verification code must be exactly 6 digits'),
+});
+
+export const resetPasswordSchema = z.object({
+  target: z.string().min(1, 'Target mobile number or email is required'),
+  resetToken: z.string().min(1, 'Reset token is required'),
+  newPassword: z.string().min(6, 'New password must be at least 6 characters'),
+});
+
 export const updateProfileSchema = z.object({
   name: z.string().min(2).max(80).optional(),
+  phone: z.string().regex(indianPhoneRegex).optional(),
   email: z.string().email().optional(),
+  phoneVerificationToken: z.string().optional(),
+  emailVerificationToken: z.string().optional(),
 });
 
 export const addressSchema = z.object({
@@ -32,3 +60,4 @@ export const addressSchema = z.object({
   pincode: z.string().regex(indianPincodeRegex, 'Valid 6-digit Indian PIN code required'),
   isDefault: z.boolean().optional().default(false),
 });
+

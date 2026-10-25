@@ -46,14 +46,16 @@ enum DiscountType {
 }
 
 model User {
-  id           String    @id @default(cuid())
-  name         String
-  email        String?   @unique
-  phone        String    @unique
-  passwordHash String
-  role         Role      @default(CUSTOMER)
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  id            String    @id @default(cuid())
+  name          String
+  email         String?   @unique
+  emailVerified Boolean   @default(false)
+  phone         String    @unique
+  phoneVerified Boolean   @default(false)
+  passwordHash  String
+  role          Role      @default(CUSTOMER)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
   addresses    Address[]
   orders       Order[]
@@ -318,4 +320,22 @@ model Review {
   @@index([productId])
   @@index([userId])
   @@map("reviews")
+}
+
+model OtpRequest {
+  id         String    @id @default(cuid())
+  target     String
+  channel    String    // SMS | EMAIL
+  otpHash    String
+  purpose    String    // signup | login | checkout | reset | profile
+  attempts   Int       @default(0)
+  expiresAt  DateTime
+  consumedAt DateTime?
+  createdAt  DateTime  @default(now())
+  ipAddress  String?
+
+  @@index([target, purpose, consumedAt])
+  @@index([expiresAt])
+  @@index([createdAt])
+  @@map("otp_requests")
 }

@@ -28,6 +28,7 @@ export const createOrderSchema = z.object({
   couponCode: z.string().optional().nullable(),
   customerNotes: z.string().max(500).optional().nullable(),
   sessionId: z.string().optional().nullable(),
+  phoneVerificationToken: z.string().optional().nullable(),
   items: z.array(orderItemInputSchema).min(1, 'Order must contain at least one item').optional(),
 });
 

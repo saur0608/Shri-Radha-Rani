@@ -5,6 +5,8 @@ import { ENV } from '../config/env';
 import { CouponService } from './coupon.service';
 import { z } from 'zod';
 import { createOrderSchema, quoteOrderSchema, updateOrderStatusSchema } from '../validators/order.validator';
+import { verifyVerificationToken } from '../utils/jwt';
+import { OtpService } from './otp/otp.service';
 
 interface CalculatedItem {
   productId: string;
@@ -175,6 +177,29 @@ export class OrderService {
       },
       userId
     );
+
+    // Enforce OTP verification requirement:
+    // Guest orders require mobile OTP verification token with purpose 'checkout'
+    if (!userId) {
+      if (!data.phoneVerificationToken) {
+        throw ApiError.badRequest('Mobile number OTP verification is required to place a guest order.');
+      }
+      try {
+        const payload = verifyVerificationToken(data.phoneVerificationToken);
+        const normalizedPhone = OtpService.normalizePhone(data.customerPhone);
+        if (payload.target !== normalizedPhone || payload.purpose !== 'checkout') {
+          throw ApiError.badRequest('Invalid or mismatched mobile verification token for checkout.');
+        }
+      } catch {
+        throw ApiError.badRequest('Invalid or expired mobile verification code. Please verify your number.');
+      }
+    } else {
+      // Logged in devotees must have a verified mobile number
+      const user = await prisma.user.findUnique({ where: { id: userId } });
+      if (!user || !user.phoneVerified) {
+        throw ApiError.badRequest('Please verify your mobile number in your account before placing an order.');
+      }
+    }
 
     // Generate unique order number (e.g. RR-20251025-XXXX)
     const timestamp = new Date().toISOString().slice(0, 10).replace(/-/g, '');

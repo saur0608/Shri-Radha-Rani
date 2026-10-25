@@ -19,6 +19,22 @@ export const verifyToken = (token: string): TokenPayload => {
   return jwt.verify(token, ENV.JWT_SECRET) as TokenPayload;
 };
 
+export interface VerificationTokenPayload {
+  target: string;
+  channel: 'SMS' | 'EMAIL';
+  purpose: string;
+}
+
+export const signVerificationToken = (payload: VerificationTokenPayload): string => {
+  return jwt.sign(payload, ENV.OTP_SECRET, {
+    expiresIn: '15m',
+  });
+};
+
+export const verifyVerificationToken = (token: string): VerificationTokenPayload => {
+  return jwt.verify(token, ENV.OTP_SECRET) as VerificationTokenPayload;
+};
+
 export const setAuthCookie = (res: Response, token: string) => {
   res.cookie('token', token, {
     httpOnly: true,
@@ -37,3 +53,4 @@ export const clearAuthCookie = (res: Response) => {
     path: '/',
   });
 };
+

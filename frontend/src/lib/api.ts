@@ -175,7 +175,14 @@ export const api = {
   },
 
   // Auth
-  register: (body: { name: string; phone: string; email?: string; password: string }) => {
+  register: (body: {
+    name: string;
+    phone: string;
+    email: string;
+    password: string;
+    phoneVerificationToken?: string;
+    emailVerificationToken?: string;
+  }) => {
     return request<ApiResponse<{ user: any; token: string }>>('/auth/register', {
       method: 'POST',
       body: JSON.stringify(body),
@@ -185,6 +192,57 @@ export const api = {
   login: (body: { phoneOrEmail: string; password: string }) => {
     return request<ApiResponse<{ user: any; token: string }>>('/auth/login', {
       method: 'POST',
+      body: JSON.stringify(body),
+    });
+  },
+
+  sendOtp: (body: { target: string; channel?: 'SMS' | 'EMAIL'; purpose: string }) => {
+    return request<ApiResponse<{
+      target: string;
+      channel: 'SMS' | 'EMAIL';
+      cooldownSeconds: number;
+      expiresInSeconds: number;
+    }>>('/auth/otp/send', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+  },
+
+  verifyOtp: (body: { target: string; otp: string; purpose: string }) => {
+    return request<ApiResponse<{
+      verified: boolean;
+      verificationToken: string;
+      token?: string;
+      user?: any;
+    }>>('/auth/otp/verify', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+  },
+
+  loginWithOtp: (body: { target: string; otp: string }) => {
+    return request<ApiResponse<{ user: any; token: string }>>('/auth/otp/login', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+  },
+
+  resetPassword: (body: { target: string; resetToken: string; newPassword: string }) => {
+    return request<ApiResponse<null>>('/auth/reset-password', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+  },
+
+  updateProfile: (body: {
+    name?: string;
+    phone?: string;
+    email?: string;
+    phoneVerificationToken?: string;
+    emailVerificationToken?: string;
+  }) => {
+    return request<ApiResponse<any>>('/auth/profile', {
+      method: 'PUT',
       body: JSON.stringify(body),
     });
   },

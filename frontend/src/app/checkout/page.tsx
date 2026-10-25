@@ -18,7 +18,9 @@ import {
   MapPin,
   Phone,
   User as UserIcon,
+  X,
 } from 'lucide-react';
+import { OtpInput } from '../../components/OtpInput';
 
 declare global {
   interface Window {
@@ -50,6 +52,8 @@ export default function CheckoutPage() {
   const [isQuoting, setIsQuoting] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [guestPhoneToken, setGuestPhoneToken] = useState<string | null>(null);
+  const [showOtpModal, setShowOtpModal] = useState<boolean>(false);
 
   // Prefill user data if logged in
   useEffect(() => {
@@ -111,7 +115,8 @@ export default function CheckoutPage() {
     setError('');
 
     // Validation
-    if (!/^[6-9]\d{9}$/.test(formData.phone.trim())) {
+    const cleanedPhone = formData.phone.trim().replace(/^(\+91|0)/, '');
+    if (!/^[6-9]\d{9}$/.test(cleanedPhone)) {
       setError(language === 'hi' ? 'कृपया 10 अंकों का मान्य भारतीय मोबाइल नंबर दर्ज करें।' : 'Please enter a valid 10-digit Indian mobile number.');
       return;
     }
@@ -120,16 +125,27 @@ export default function CheckoutPage() {
       return;
     }
 
+    // Guest checkout requires mobile OTP verification
+    if (!isAuthenticated && !guestPhoneToken) {
+      setShowOtpModal(true);
+      return;
+    }
+
+    await executeOrder(guestPhoneToken || undefined);
+  };
+
+  const executeOrder = async (token?: string) => {
     try {
       setIsSubmitting(true);
+      setError('');
 
       const orderPayload = {
         customerName: formData.recipientName,
-        customerPhone: formData.phone.trim(),
+        customerPhone: formData.phone.trim().replace(/^(\+91|0)/, ''),
         customerEmail: formData.email.trim() || undefined,
         shippingAddress: {
           recipientName: formData.recipientName,
-          phone: formData.phone.trim(),
+          phone: formData.phone.trim().replace(/^(\+91|0)/, ''),
           street: formData.street,
           landmark: formData.landmark || undefined,
           city: formData.city,
@@ -139,6 +155,7 @@ export default function CheckoutPage() {
         paymentMethod: formData.paymentMethod,
         couponCode: formData.couponCode || undefined,
         customerNotes: formData.customerNotes || undefined,
+        phoneVerificationToken: token || guestPhoneToken || undefined,
         items: items.map((i) => ({
           productId: i.productId,
           variantId: i.variantId,
@@ -153,6 +170,7 @@ export default function CheckoutPage() {
       }
 
       const createdOrder = res.data;
+
 
       // 2. Handle Payment
       if (formData.paymentMethod === 'COD') {
@@ -559,6 +577,40 @@ export default function CheckoutPage() {
           </div>
         </div>
       </form>
+
+
+      {/* Guest Mobile OTP Verification Modal */}
+      {showOtpModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="relative w-full max-w-md animate-in fade-in zoom-in-95 duration-150">
+            <button
+              type="button"
+              onClick={() => setShowOtpModal(false)}
+              className="absolute -top-10 right-0 p-1 text-white/80 hover:text-white"
+            >
+              <X className="w-6 h-6" />
+            </button>
+            <OtpInput
+              target={formData.phone.trim().replace(/^(\+91|0)/, '')}
+              channel="SMS"
+              purpose="checkout"
+              title={language === 'hi' ? 'अतिथि मोबाइल सत्यापन' : 'Verify Mobile Number'}
+              subtitle={
+                language === 'hi'
+                  ? 'ऑर्डर की पुष्टि हेतु अपने मोबाइल पर भेजा गया 6-अंकीय कोड दर्ज करें'
+                  : 'Enter 6-digit verification code to confirm your order'
+              }
+              onVerified={(token) => {
+                setGuestPhoneToken(token);
+                setShowOtpModal(false);
+                executeOrder(token);
+              }}
+              onEditTarget={() => setShowOtpModal(false)}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+

@@ -3,12 +3,24 @@ import { ENV } from './config/env';
 import { connectDb, disconnectDb } from './db/prisma';
 import { logger } from './utils/logger';
 
+import { OtpService } from './services/otp/otp.service';
+
 const app = createApp();
 
 const startServer = async () => {
   try {
     // Attempt DB connection
     await connectDb();
+
+    // Run initial OTP cleanup on startup and schedule hourly
+    OtpService.cleanupExpiredOtps().catch((err) =>
+      logger.error('Initial OTP cleanup error:', err)
+    );
+    const otpCleanupInterval = setInterval(() => {
+      OtpService.cleanupExpiredOtps().catch((err) =>
+        logger.error('Scheduled OTP cleanup error:', err)
+      );
+    }, 60 * 60 * 1000); // Hourly
 
     const server = app.listen(ENV.PORT, () => {
       logger.info(`🌸 Shri Radha Rani Store API running on port ${ENV.PORT}`);
@@ -18,7 +30,9 @@ const startServer = async () => {
 
     const shutdown = async (signal: string) => {
       logger.info(`Received ${signal}. Shutting down gracefully...`);
+      clearInterval(otpCleanupInterval);
       server.close(async () => {
+
         await disconnectDb();
         logger.info('Graceful shutdown completed. Radhe Radhe!');
         process.exit(0);

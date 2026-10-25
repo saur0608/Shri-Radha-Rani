@@ -3,11 +3,13 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { api, setAuthToken, getAuthToken } from '../lib/api';
 
-interface DevoteeUser {
+export interface DevoteeUser {
   id: string;
   name: string;
   phone: string;
   email?: string;
+  phoneVerified?: boolean;
+  emailVerified?: boolean;
   role: string;
   addresses?: any[];
 }
@@ -17,9 +19,18 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (phoneOrEmail: string, password: string) => Promise<void>;
-  register: (data: { name: string; phone: string; email?: string; password: string }) => Promise<void>;
+  loginWithOtp: (target: string, otp: string) => Promise<void>;
+  register: (data: {
+    name: string;
+    phone: string;
+    email: string;
+    password: string;
+    phoneVerificationToken?: string;
+    emailVerificationToken?: string;
+  }) => Promise<void>;
   logout: () => Promise<void>;
   refreshProfile: () => Promise<void>;
+  setSession: (user: DevoteeUser, token: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -51,30 +62,41 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     fetchProfile();
   }, []);
 
-  const login = async (phoneOrEmail: string, password: string) => {
-    const res = await api.login({ phoneOrEmail, password });
-    if (res.success && res.data) {
-      setAuthToken(res.data.token);
-      setUser(res.data.user);
-      // Automatically merge guest cart with user account!
-      try {
-        await api.mergeCart();
-      } catch (e) {
-        console.warn('Could not merge cart:', e);
-      }
+  const setSession = async (user: DevoteeUser, token: string) => {
+    setAuthToken(token);
+    setUser(user);
+    try {
+      await api.mergeCart();
+    } catch (e) {
+      console.warn('Could not merge cart:', e);
     }
   };
 
-  const register = async (data: { name: string; phone: string; email?: string; password: string }) => {
+  const login = async (phoneOrEmail: string, password: string) => {
+    const res = await api.login({ phoneOrEmail, password });
+    if (res.success && res.data) {
+      await setSession(res.data.user, res.data.token);
+    }
+  };
+
+  const loginWithOtp = async (target: string, otp: string) => {
+    const res = await api.loginWithOtp({ target, otp });
+    if (res.success && res.data) {
+      await setSession(res.data.user, res.data.token);
+    }
+  };
+
+  const register = async (data: {
+    name: string;
+    phone: string;
+    email: string;
+    password: string;
+    phoneVerificationToken?: string;
+    emailVerificationToken?: string;
+  }) => {
     const res = await api.register(data);
     if (res.success && res.data) {
-      setAuthToken(res.data.token);
-      setUser(res.data.user);
-      try {
-        await api.mergeCart();
-      } catch (e) {
-        console.warn('Could not merge cart:', e);
-      }
+      await setSession(res.data.user, res.data.token);
     }
   };
 
@@ -96,9 +118,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isAuthenticated: !!user,
         isLoading,
         login,
+        loginWithOtp,
         register,
         logout,
         refreshProfile: fetchProfile,
+        setSession,
       }}
     >
       {children}

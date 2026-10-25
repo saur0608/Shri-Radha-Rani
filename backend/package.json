@@ -25,6 +25,7 @@
     "helmet": "^8.0.0",
     "jsonwebtoken": "^9.0.2",
     "morgan": "^1.10.0",
+    "nodemailer": "^10.2.1",
     "razorpay": "^2.9.4",
     "zod": "^3.23.8"
   },
@@ -36,6 +37,7 @@
     "@types/jsonwebtoken": "^9.0.7",
     "@types/morgan": "^1.9.9",
     "@types/node": "^22.8.1",
+    "@types/nodemailer": "^8.0.2",
     "prisma": "^5.21.1",
     "tsx": "^4.19.1",
     "typescript": "^5.6.3"
