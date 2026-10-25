@@ -12,7 +12,9 @@ export class ConsoleSmsProvider implements ISmsProvider {
     console.log(`🎯 PURPOSE: ${purpose.toUpperCase()}`);
     console.log(`🔑 SECURE OTP: [ ${otp} ]`);
     console.log(`📜 DLT MESSAGE: "${dltMessage}"`);
-    console.log(`⚠️  NOTE: Server is running in LOCAL CONSOLE mode (SMS_PROVIDER=console or OTP_LOG_CONSOLE=true). No real SMS is dispatched to telecoms.`);
+    console.log(`⏳ VALIDITY: 5 minutes`);
+    console.log(`⚠️  NOTE: Server is running in LOCAL DEV mode (SMS_PROVIDER=console or OTP_DEV_MODE=true).`);
+    console.log(`👉 Real telecom SMS is NOT sent. To send real SMS, set SMS_PROVIDER=fast2sms (or twilio/msg91) and OTP_DEV_MODE=false.`);
     console.log('============================================================\n');
 
     logger.info(`[SMS Audit] Console mock OTP for ${purpose} to ${phone.slice(0, 4)}****${phone.slice(-2)}`);

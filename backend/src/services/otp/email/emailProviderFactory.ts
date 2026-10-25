@@ -5,9 +5,9 @@ import { ENV } from '../../../config/env';
 import { logger } from '../../../utils/logger';
 
 export function getEmailProvider(overrideProvider?: string): IEmailProvider {
-  const selectedProvider = overrideProvider || (ENV.OTP_LOG_CONSOLE && ENV.EMAIL_PROVIDER === 'console' ? 'console' : ENV.EMAIL_PROVIDER);
+  const selectedProvider = overrideProvider || (ENV.OTP_DEV_MODE && ENV.EMAIL_PROVIDER === 'console' ? 'console' : ENV.EMAIL_PROVIDER);
 
-  logger.info(`[Email Factory] Resolving provider: requested="${overrideProvider || 'none'}", configured="${ENV.EMAIL_PROVIDER}", OTP_LOG_CONSOLE=${ENV.OTP_LOG_CONSOLE} -> Active="${selectedProvider}"`);
+  logger.info(`[Email Factory] Resolving provider: requested="${overrideProvider || 'none'}", configured="${ENV.EMAIL_PROVIDER}", OTP_DEV_MODE=${ENV.OTP_DEV_MODE} -> Active="${selectedProvider}"`);
 
   switch (selectedProvider) {
     case 'nodemailer':

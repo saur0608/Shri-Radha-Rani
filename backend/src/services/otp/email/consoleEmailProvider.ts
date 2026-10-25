@@ -10,7 +10,8 @@ export class ConsoleEmailProvider implements IEmailProvider {
     console.log(`🎯 PURPOSE: ${purpose.toUpperCase()}`);
     console.log(`🔑 SECURE OTP: [ ${otp} ]`);
     console.log(`⏳ VALIDITY: 5 minutes`);
-    console.log(`⚠️  NOTE: Server is running in LOCAL CONSOLE mode (EMAIL_PROVIDER=console or OTP_LOG_CONSOLE=true). No real email is dispatched via SMTP.`);
+    console.log(`⚠️  NOTE: Server is running in LOCAL DEV mode (EMAIL_PROVIDER=console or OTP_DEV_MODE=true).`);
+    console.log(`👉 Real email is NOT dispatched via SMTP. To send real email, set EMAIL_PROVIDER=nodemailer and OTP_DEV_MODE=false.`);
     console.log('==============================================================\n');
 
     logger.info(`[Email Audit] Console mock OTP for ${purpose} to ${email.slice(0, 3)}***@${email.split('@')[1]}`);

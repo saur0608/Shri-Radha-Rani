@@ -4,6 +4,7 @@ import { OtpService } from '../services/otp/otp.service';
 import { prisma } from '../db/prisma';
 import { ApiResponse } from '../utils/apiResponse';
 import { ApiError } from '../utils/apiError';
+import { logger } from '../utils/logger';
 import { setAuthCookie, clearAuthCookie, signToken } from '../utils/jwt';
 
 export class AuthController {
@@ -13,6 +14,15 @@ export class AuthController {
       const isEmail = target.includes('@');
       const channel = req.body.channel || (isEmail ? 'EMAIL' : 'SMS');
       const ipAddress = (req.headers['x-forwarded-for'] as string)?.split(',')[0].trim() || req.ip;
+      const maskedTarget = isEmail
+        ? `${target.slice(0, 3)}***@${target.split('@')[1]}`
+        : `${target.replace(/\D/g, '').slice(0, 3)}****${target.replace(/\D/g, '').slice(-2)}`;
+
+      // Step 1: Request received log
+      logger.info(`[AuthController.sendOtp] [1/5] Incoming OTP request: target="${maskedTarget}", purpose="${purpose}", channel="${channel}", ip="${ipAddress}"`);
+
+      // Step 2: Post-validation log (sendOtpSchema already verified target & purpose)
+      logger.info(`[AuthController.sendOtp] [2/5] Validation passed for target="${maskedTarget}", purpose="${purpose}"`);
 
       // Generic protection for login / reset: if user does not exist, return generic message without sending
       if (purpose === 'login' || purpose === 'reset') {
@@ -24,6 +34,7 @@ export class AuthController {
         });
 
         if (!userExists) {
+          logger.info(`[AuthController.sendOtp] Account with target="${maskedTarget}" does not exist for purpose="${purpose}". Generic anti-enumeration response returned.`);
           return ApiResponse.success(
             res,
             {

@@ -102,8 +102,14 @@ export class OtpService {
       throw ApiError.badRequest('Maximum OTP attempts reached for this hour. Please try again later.');
     }
 
-    // 3. Generate 6-Digit Cryptographically Secure Random OTP
+    // 3. Generate 6-Digit Cryptographically Secure Random OTP (100000 - 999999)
     const rawOtp = crypto.randomInt(100000, 1000000).toString();
+    const maskedLogTarget = channel === 'EMAIL'
+      ? `${normalizedTarget.slice(0, 3)}***@${normalizedTarget.split('@')[1]}`
+      : `${normalizedTarget.slice(0, 3)}****${normalizedTarget.slice(-2)}`;
+
+    logger.info(`[OtpService.sendOtp] [3/5] Generated 6-digit cryptographically secure OTP for target="${maskedLogTarget}", purpose="${purpose}"`);
+
     const otpHash = this.hashOtp(normalizedTarget, purpose, rawOtp);
     const expiresAt = new Date(now.getTime() + ENV.OTP_EXPIRY_MINUTES * 60 * 1000);
 
@@ -120,7 +126,7 @@ export class OtpService {
     });
 
     // 5. Store hashed OTP in database
-    await prisma.otpRequest.create({
+    const savedRecord = await prisma.otpRequest.create({
       data: {
         target: normalizedTarget,
         channel,
@@ -131,22 +137,24 @@ export class OtpService {
       },
     });
 
+    logger.info(`[OtpService.sendOtp] [4/5] Stored hashed OTP in PostgreSQL "otp_requests" (Record ID: ${savedRecord.id}, Expires: ${expiresAt.toISOString()})`);
+
     // 6. Dispatch via SMS or Email provider with full audit and diagnostics
-    let deliveryResult: { success: boolean; provider: string; errorMessage?: string; messageId?: string };
+    let deliveryResult: { success: boolean; provider: string; errorMessage?: string; messageId?: string; statusCode?: number };
 
     if (channel === 'SMS') {
       const smsProvider = getSmsProvider();
-      logger.info(`[OTP Dispatch] Calling SMS provider "${smsProvider.name}" for target ${normalizedTarget}`);
+      logger.info(`[OtpService.sendOtp] [5/5] Calling SMS provider "${smsProvider.name}" for target="${maskedLogTarget}"`);
       deliveryResult = await smsProvider.sendOtp(normalizedTarget, rawOtp, purpose);
     } else {
       const emailProvider = getEmailProvider();
-      logger.info(`[OTP Dispatch] Calling Email provider "${emailProvider.name}" for target ${normalizedTarget}`);
+      logger.info(`[OtpService.sendOtp] [5/5] Calling Email provider "${emailProvider.name}" for target="${maskedLogTarget}"`);
       deliveryResult = await emailProvider.sendOtp(normalizedTarget, rawOtp, purpose);
     }
 
     if (!deliveryResult.success) {
       const failureReason = deliveryResult.errorMessage || 'Provider rejected message dispatch';
-      logger.error(`[OTP Dispatch FAILED] Channel: ${channel}, Provider: ${deliveryResult.provider}, Target: ${normalizedTarget}, Error: ${failureReason}`);
+      logger.error(`[OTP Dispatch FAILED] Channel: ${channel}, Provider: ${deliveryResult.provider}, Target: ${maskedLogTarget}, Error: ${failureReason}`);
 
       // Invalidate the created OTP request so user does not get stuck on failed attempt
       await prisma.otpRequest.updateMany({
@@ -157,7 +165,7 @@ export class OtpService {
       throw ApiError.badRequest(`SMS/Email delivery failed: ${failureReason}`);
     }
 
-    logger.info(`[OTP Dispatch SUCCESS] Channel: ${channel}, Provider: ${deliveryResult.provider}, Target: ${normalizedTarget}, MessageId: ${deliveryResult.messageId || 'none'}`);
+    logger.info(`[OTP Dispatch SUCCESS] Channel: ${channel}, Provider: ${deliveryResult.provider}, Target: ${maskedLogTarget}, MessageId: ${deliveryResult.messageId || 'none'}`);
 
     return {
       success: true,

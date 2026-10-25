@@ -17,9 +17,11 @@ export function getSmsProvider(overrideProvider?: string): ISmsProvider {
     return mockProviderInstance;
   }
 
-  const selectedProvider = overrideProvider || (ENV.OTP_LOG_CONSOLE && ENV.SMS_PROVIDER === 'console' ? 'console' : ENV.SMS_PROVIDER);
+  // If overrideProvider specified (e.g. from test script or health check), use it directly
+  // Otherwise if OTP_DEV_MODE is true AND SMS_PROVIDER is 'console', use console
+  const selectedProvider = overrideProvider || (ENV.OTP_DEV_MODE && ENV.SMS_PROVIDER === 'console' ? 'console' : ENV.SMS_PROVIDER);
 
-  logger.info(`[SMS Factory] Resolving provider: requested="${overrideProvider || 'none'}", configured="${ENV.SMS_PROVIDER}", OTP_LOG_CONSOLE=${ENV.OTP_LOG_CONSOLE} -> Active="${selectedProvider}"`);
+  logger.info(`[SMS Factory] Resolving provider: requested="${overrideProvider || 'none'}", configured="${ENV.SMS_PROVIDER}", OTP_DEV_MODE=${ENV.OTP_DEV_MODE} -> Active="${selectedProvider}"`);
 
   switch (selectedProvider) {
     case 'fast2sms':

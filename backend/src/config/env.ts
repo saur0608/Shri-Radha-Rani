@@ -21,7 +21,8 @@ const envSchema = z.object({
   OTP_MAX_ATTEMPTS: z.string().default('5').transform((v) => parseInt(v, 10)),
   OTP_COOLDOWN_SECONDS: z.string().default('30').transform((v) => parseInt(v, 10)),
   OTP_HOURLY_LIMIT: z.string().default('5').transform((v) => parseInt(v, 10)),
-  OTP_LOG_CONSOLE: z.string().default('true').transform((v) => v === 'true'),
+  OTP_DEV_MODE: z.string().default('true').transform((v) => v === 'true' || v === '1'),
+  OTP_LOG_CONSOLE: z.string().default('true').transform((v) => v === 'true' || v === '1'),
 
   // SMS Provider: 'console' | 'fast2sms' | 'twilio' | 'msg91'
   SMS_PROVIDER: z.enum(['console', 'fast2sms', 'twilio', 'msg91']).default('console'),
